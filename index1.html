@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Daily Mood Journal</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
+  h1 { text-align: center; }
+  .mood-picker span { font-size: 2rem; cursor: pointer; margin: 0 0.3rem; }
+  .selected { background: #ffd; border-radius: 5px; }
+  #journal-text { width: 100%; height: 150px; margin-top: 0.5rem; }
+  #save-button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; }
+  #history-list { margin-top: 2rem; }
+  .entry-link { cursor: pointer; padding: 0.3rem; border-bottom: 1px solid #ddd; }
+  .entry-link:hover { background: #f0f0f0; }
+  #date { text-align: center; font-weight: bold; margin-bottom: 1rem; }
+  #encouragement { margin-top: 1rem; font-style: italic; color: #007700; }
+</style>
+</head>
+<body>
+<h1>Daily Mood Journal</h1>
+<div id="date"></div>
+
+<div>
+  <strong>Morning Mood:</strong>
+  <div class="mood-picker" id="morning-mood">
+    <span>😊</span><span>😞</span><span>😡</span><span>😭</span><span>😐</span>
+  </div>
+</div>
+
+<div>
+  <strong>Evening Mood:</strong>
+  <div class="mood-picker" id="evening-mood">
+    <span>😊</span><span>😞</span><span>😡</span><span>😭</span><span>😐</span>
+  </div>
+</div>
+
+<textarea id="journal-text" placeholder="Write about your day..."></textarea>
+<br />
+<button id="save-button">Save Entry</button>
+
+<div id="encouragement"></div>
+
+<h2>Past Entries</h2>
+<div id="history-list"></div>
+
+<script>
+  const dateEl = document.getElementById("date");
+  const morningMoodEl = document.getElementById("morning-mood");
+  const eveningMoodEl = document.getElementById("evening-mood");
+  const journalTextEl = document.getElementById("journal-text");
+  const encouragementEl = document.getElementById("encouragement");
+  const historyListEl = document.getElementById("history-list");
+
+  // Format today's date as YYYY-MM-DD
+  function getToday() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  let currentDate = getToday();
+
+  // Show date on top
+  function showDate(date) {
+    dateEl.textContent = `Date: ${date}`;
+  }
+
+  // Select emoji visually
+  function selectEmoji(container, emoji) {
+    const spans = container.querySelectorAll('span');
+    spans.forEach(span => {
+      span.classList.toggle('selected', span.textContent === emoji);
+    });
+  }
+
+  // Load entry from localStorage
+  function loadEntry(date) {
+    const saved = JSON.parse(localStorage.getItem(date));
+    if (saved) {
+      selectEmoji(morningMoodEl, saved.morningMood);
+      selectEmoji(eveningMoodEl, saved.eveningMood);
+      journalTextEl.value = saved.text || "";
+    } else {
+      // clear if no saved entry
+      selectEmoji(morningMoodEl, "");
+      selectEmoji(eveningMoodEl, "");
+      journalTextEl.value = "";
+    }
+    encouragementEl.textContent = "";
+    showDate(date);
+  }
+
+  // Save current entry
+  function saveEntry() {
+    const morningMood = morningMoodEl.querySelector('.selected')?.textContent || "";
+    const eveningMood = eveningMoodEl.querySelector('.selected')?.textContent || "";
+    const text = journalTextEl.value.trim();
+
+    if (!morningMood && !eveningMood && !text) {
+      encouragementEl.textContent = "Please add some mood or text before saving.";
+      return;
+    }
+
+    const entry = { morningMood, eveningMood, text };
+    localStorage.setItem(currentDate, JSON.stringify(entry));
+    encouragementEl.textContent = "Entry saved! 💾";
+
+    updateHistory();
+  }
+
+  // Update history list of past entries
+  function updateHistory() {
+    historyListEl.innerHTML = "";
+    // Get all keys that look like dates YYYY-MM-DD
+    const keys = Object.keys(localStorage)
+      .filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k))
+      .sort()
+      .reverse();
+
+    keys.forEach(date => {
+      const div = document.createElement('div');
+      div.textContent = date;
+      div.className = 'entry-link';
+      div.onclick = () => {
+        currentDate = date;
+        loadEntry(date);
+      };
+      historyListEl.appendChild(div);
+    });
+  }
+
+  // Emoji click handlers
+  morningMoodEl.addEventListener('click', e => {
+    if (e.target.tagName === 'SPAN') {
+      selectEmoji(morningMoodEl, e.target.textContent);
+    }
+  });
+
+  eveningMoodEl.addEventListener('click', e => {
+    if (e.target.tagName === 'SPAN') {
+      selectEmoji(eveningMoodEl, e.target.textContent);
+    }
+  });
+
+  document.getElementById('save-button').addEventListener('click', saveEntry);
+
+  // On load show today's entry or blank
+  loadEntry(currentDate);
+  updateHistory();
+</script>
+</body>
+</html>
